@@ -1,0 +1,2754 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>新宮DC 号車情報送信</title>
+
+  <!-- ファビコン（複数の方法を試す） -->
+  <!-- 方法1: Google Drive直接リンク -->
+  <link rel="icon" type="image/png" href="https://drive.google.com/uc?export=view&id=1QxOzkxOB-Y6MQWZPj82jruN5-4Dbvq08">
+
+  <!-- 方法2: Google Driveの別形式 -->
+  <link rel="shortcut icon" type="image/png" href="https://drive.google.com/thumbnail?id=1QxOzkxOB-Y6MQWZPj82jruN5-4Dbvq08&sz=w512">
+
+  <!-- PWA / ホーム画面追加用の設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="新宮DC">
+  <meta name="application-name" content="新宮DC">
+  <meta name="theme-color" content="#667eea">
+
+  <!-- Apple Touch Icon（iOS用アイコン） -->
+  <link rel="apple-touch-icon" href="https://drive.google.com/thumbnail?id=1QxOzkxOB-Y6MQWZPj82jruN5-4Dbvq08&sz=w512">
+
+  <!-- Android用アイコン -->
+  <link rel="icon" type="image/png" sizes="192x192" href="https://drive.google.com/thumbnail?id=1QxOzkxOB-Y6MQWZPj82jruN5-4Dbvq08&sz=w192">
+  <link rel="icon" type="image/png" sizes="512x512" href="https://drive.google.com/thumbnail?id=1QxOzkxOB-Y6MQWZPj82jruN5-4Dbvq08&sz=w512">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      overflow: hidden;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    /* タブレット */
+    @media screen and (min-width: 600px) {
+      body {
+        padding: 20px 0;
+      }
+      .container {
+        max-width: 540px;
+        min-height: auto;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
+    }
+
+    /* PC */
+    @media screen and (min-width: 1024px) {
+      .container {
+        max-width: 480px;
+      }
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 25px 20px;
+      text-align: center;
+      position: relative;
+    }
+
+    .header.end-mode {
+      background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .menu-button {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .menu-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .menu-button span {
+      width: 20px;
+      height: 2px;
+      background: white;
+      display: block;
+      border-radius: 2px;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100vh;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      transition: left 0.3s ease;
+      z-index: 1000;
+    }
+
+    .side-menu.active {
+      left: 0;
+    }
+
+    .side-menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 999;
+    }
+
+    .side-menu-overlay.active {
+      display: block;
+    }
+
+    .side-menu-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .side-menu-items {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .side-menu-item {
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .side-menu-item button {
+      width: 100%;
+      padding: 18px 20px;
+      background: none;
+      border: none;
+      text-align: left;
+      font-size: 16px;
+      color: #333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.2s;
+    }
+
+    .side-menu-item button:hover {
+      background: #f8f9fa;
+    }
+
+    .side-menu-item button:active {
+      background: #e9ecef;
+    }
+
+    .history-link {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .history-link:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .tabs {
+      display: flex;
+      background: #f5f5f7;
+      padding: 10px;
+      gap: 10px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 16px;
+      background: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: #666;
+    }
+
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .tab.active.end-tab {
+      background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+      box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4);
+    }
+
+    .form-container {
+      padding: 20px 16px 30px;
+    }
+
+    @media screen and (min-width: 600px) {
+      .form-container {
+        padding: 25px 24px 30px;
+      }
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      -webkit-appearance: none;
+      appearance: none;
+      background-color: white;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 20px;
+      padding-right: 44px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    textarea {
+      background-image: none;
+      padding-right: 16px;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: -10px;
+      margin-bottom: 20px;
+    }
+
+    .add-button {
+      padding: 10px 18px;
+      background: #34c759;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .add-button:active {
+      transform: scale(0.98);
+      background: #2fb34d;
+    }
+
+    .submit-button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 25px;
+      box-shadow: 0 6px 20px rgba(238, 90, 111, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .submit-button:active {
+      transform: scale(0.98);
+      box-shadow: 0 3px 10px rgba(238, 90, 111, 0.3);
+    }
+
+    .clear-button {
+      width: 100%;
+      padding: 16px;
+      background: #f5f5f7;
+      color: #666;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .clear-button:active {
+      background: #e8e8ea;
+    }
+
+    .message {
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 15px;
+      font-weight: 500;
+      text-align: center;
+      display: none;
+    }
+
+    .message.success {
+      background: #d1f4e0;
+      color: #0f5132;
+      border: 1px solid #b8e6cc;
+    }
+
+    .message.error {
+      background: #ffe5e5;
+      color: #842029;
+      border: 1px solid #ffcccc;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e0e0e0;
+      margin: 25px 0;
+    }
+
+    .toll-section-item {
+      background: #f8f9fa;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .toll-section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .toll-section-title {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .remove-toll-button {
+      background: #ff3b30;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .remove-toll-button:active {
+      background: #d32f2f;
+    }
+
+    .toll-section-item .form-group {
+      margin-bottom: 12px;
+    }
+
+    .toll-section-item .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .toll-section-item label {
+      font-size: 14px;
+    }
+
+    .history-view {
+      display: none;
+      padding: 20px 16px;
+    }
+
+    .history-view.active {
+      display: block;
+    }
+
+    @media screen and (min-width: 600px) {
+      .history-view {
+        padding: 25px 24px;
+      }
+    }
+
+    .history-filters {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .history-filters .form-group {
+      margin-bottom: 15px;
+    }
+
+    .history-filters .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .search-button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .search-button:active {
+      transform: scale(0.98);
+    }
+
+    .back-button {
+      width: 100%;
+      padding: 16px;
+      background: #f5f5f7;
+      color: #666;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .back-button:active {
+      background: #e8e8ea;
+    }
+
+    .history-results {
+      margin-top: 20px;
+    }
+
+    .history-item {
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .copy-button {
+      display: block;
+      margin: 12px auto 0;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      width: fit-content;
+    }
+
+    .copy-button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    .copy-button:active {
+      transform: translateY(0);
+    }
+
+    .combined-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .combined-table tr {
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .combined-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .combined-table td {
+      padding: 12px 8px;
+      font-size: 14px;
+    }
+
+    .combined-table td.label {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #666;
+    }
+
+    .combined-table td.value {
+      color: #333;
+    }
+
+    .combined-table td.spacer {
+      padding: 5px;
+      background: transparent;
+      border: none;
+    }
+
+    .combined-table td.toll-start,
+    .combined-table td.toll-end,
+    .combined-table td.toll-fee {
+      background: #fff8e1;
+      color: #333;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .history-timestamp {
+      font-size: 12px;
+      color: #999;
+      text-align: right;
+      padding-top: 8px;
+      margin-top: 8px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .history-item-title {
+      font-weight: 600;
+      color: #333;
+      font-size: 15px;
+    }
+
+    .edit-button {
+      padding: 10px 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .edit-button:active {
+      transform: scale(0.98);
+    }
+
+    .history-item-content {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.6;
+    }
+
+    .history-item-content div {
+      margin-bottom: 6px;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 15px;
+    }
+
+    .edit-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .edit-modal.active {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 40px;
+    }
+
+    .edit-modal-content {
+      background: white;
+      border-radius: 20px;
+      max-width: 480px;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+
+    .edit-modal-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .edit-modal-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .close-modal {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .edit-modal-body {
+      padding: 25px 20px;
+    }
+
+    .management-view {
+      display: none;
+      padding: 20px 16px;
+    }
+
+    .management-view.active {
+      display: block;
+    }
+
+    @media screen and (min-width: 600px) {
+      .management-view {
+        padding: 25px 24px;
+      }
+    }
+
+    .management-section {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .management-section h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .management-list {
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 15px;
+    }
+
+    .management-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .delete-button {
+      padding: 8px 14px;
+      background: #ff3b30;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 上書き確認モーダル */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-title {
+      color: #ff9800;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 15px 0;
+      text-align: center;
+    }
+
+    .modal-message {
+      color: #666;
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0 0 25px 0;
+      text-align: center;
+    }
+
+    .modal-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-button {
+      border: none;
+      padding: 16px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-button-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .modal-button-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .modal-button-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .modal-button-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .modal-button-cancel {
+      background: white;
+      color: #999;
+      border: 2px solid #e0e0e0;
+    }
+
+    .modal-button-cancel:hover {
+      border-color: #ccc;
+      color: #666;
+    }
+
+    .password-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .password-modal.active {
+      display: flex;
+    }
+
+    .password-modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .password-modal h3 {
+      margin-bottom: 20px;
+      color: #333;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .password-input {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .password-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .password-button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .password-button.submit {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .password-button.cancel {
+      background: #f5f5f7;
+      color: #666;
+    }
+
+    /* 時間選択のスタイル調整 */
+    .time-select-wrapper {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .time-select-wrapper select {
+      flex: 1;
+    }
+
+    .time-select-wrapper .time-separator {
+      color: #666;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header" id="app-header">
+      <button class="menu-button" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1>🚛 新宮DC</h1>
+      <p>号車情報送信システム</p>
+    </div>
+
+    <div class="tabs" id="main-tabs">
+      <button class="tab active" onclick="switchTab('start')">開始</button>
+      <button class="tab end-tab" onclick="switchTab('end')">終了</button>
+    </div>
+
+    <div class="form-container">
+      <div id="message" class="message"></div>
+      <div id="loading" class="loading">送信中...</div>
+
+      <!-- 開始タブのフォーム -->
+      <div id="start-content" class="tab-content active">
+        <form id="start-form">
+          <div class="form-group">
+            <label>日付を選択してください</label>
+            <input type="date" id="start-date" name="date" required>
+          </div>
+
+          <div class="form-group">
+            <label>号車を選択してください</label>
+            <select id="start-car" name="carNumber" required>
+              <option value="">選択してください</option>
+              <option value="1号車">1号車</option>
+              <option value="2号車">2号車</option>
+              <option value="3号車">3号車</option>
+              <option value="4号車">4号車</option>
+              <option value="5号車">5号車</option>
+              <option value="6号車">6号車</option>
+              <option value="7号車">7号車</option>
+              <option value="8号車">8号車</option>
+              <option value="9号車">9号車</option>
+              <option value="10号車">10号車</option>
+              <option value="11号車">11号車</option>
+              <option value="12号車">12号車</option>
+              <option value="13号車">13号車</option>
+              <option value="14号車">14号車</option>
+              <option value="15号車">15号車</option>
+              <option value="16号車">16号車</option>
+              <option value="17号車">17号車</option>
+              <option value="18号車">18号車</option>
+              <option value="19号車">19号車</option>
+              <option value="20号車">20号車</option>
+              <option value="21号車">21号車</option>
+              <option value="22号車">22号車</option>
+              <option value="23号車">23号車</option>
+              <option value="24号車">24号車</option>
+              <option value="25号車">25号車</option>
+              <option value="26号車">26号車</option>
+              <option value="27号車">27号車</option>
+              <option value="28号車">28号車</option>
+              <option value="29号車">29号車</option>
+              <option value="30号車">30号車</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>ドライバー名を選択してください</label>
+            <select id="start-driver" name="driverName" required>
+              <option value="">選択してください</option>
+            </select>
+          </div>
+
+          <div class="button-group">
+            <button type="button" id="add-driver-btn" class="add-button">+ 新規登録</button>
+          </div>
+
+          <div class="form-group">
+            <label>車両Noを選択してください</label>
+            <select id="start-vehicle" name="vehicleNo" required>
+              <option value="">選択してください</option>
+            </select>
+          </div>
+
+          <div class="button-group">
+            <button type="button" id="add-vehicle-btn" class="add-button">+ 新規登録</button>
+          </div>
+
+          <div class="form-group">
+            <label>庸車区分①を選択してください</label>
+            <select id="start-hired-vehicle1" name="hiredVehicle1" required>
+              <option value="">選択してください</option>
+              <option value="1マン">1マン</option>
+              <option value="2マン">2マン</option>
+              <option value="3マン">3マン</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>庸車区分②を選択してください</label>
+            <select id="start-hired-vehicle2" name="hiredVehicle2">
+              <option value="">選択してください</option>
+              <option value="月間契約">月間契約</option>
+              <option value="臨時">臨時</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>助手を選択してください</label>
+            <select id="start-assistant" name="assistant">
+              <option value="">選択してください</option>
+              <option value="業者">業者</option>
+              <option value="社員">社員</option>
+              <option value="アルバイト">アルバイト</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>出庫メーターを入力してください</label>
+            <input type="text" id="start-exit-mileage" name="exitMileage" required pattern="[0-9]+" title="半角数字のみ入力してください" inputmode="numeric">
+          </div>
+
+          <div class="form-group">
+            <label>出庫時刻を選択してください</label>
+            <div class="time-select-wrapper">
+              <select id="start-exit-time-hour" name="exitTimeHour" required>
+                <option value="">時</option>
+              </select>
+              <span class="time-separator">:</span>
+              <select id="start-exit-time-minute" name="exitTimeMinute" required>
+                <option value="">分</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="submit-button">送信</button>
+          <button type="button" class="clear-button" onclick="clearForm('start')">全てクリア</button>
+        </form>
+      </div>
+
+      <!-- 終了タブのフォーム -->
+      <div id="end-content" class="tab-content">
+        <form id="end-form">
+          <div class="form-group">
+            <label>日付を選択してください</label>
+            <input type="date" id="end-date" name="date" required>
+          </div>
+
+          <div class="form-group">
+            <label>号車を選択してください</label>
+            <select id="end-car" name="carNumber" required>
+              <option value="">選択してください</option>
+              <option value="1号車">1号車</option>
+              <option value="2号車">2号車</option>
+              <option value="3号車">3号車</option>
+              <option value="4号車">4号車</option>
+              <option value="5号車">5号車</option>
+              <option value="6号車">6号車</option>
+              <option value="7号車">7号車</option>
+              <option value="8号車">8号車</option>
+              <option value="9号車">9号車</option>
+              <option value="10号車">10号車</option>
+              <option value="11号車">11号車</option>
+              <option value="12号車">12号車</option>
+              <option value="13号車">13号車</option>
+              <option value="14号車">14号車</option>
+              <option value="15号車">15号車</option>
+              <option value="16号車">16号車</option>
+              <option value="17号車">17号車</option>
+              <option value="18号車">18号車</option>
+              <option value="19号車">19号車</option>
+              <option value="20号車">20号車</option>
+              <option value="21号車">21号車</option>
+              <option value="22号車">22号車</option>
+              <option value="23号車">23号車</option>
+              <option value="24号車">24号車</option>
+              <option value="25号車">25号車</option>
+              <option value="26号車">26号車</option>
+              <option value="27号車">27号車</option>
+              <option value="28号車">28号車</option>
+              <option value="29号車">29号車</option>
+              <option value="30号車">30号車</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>業務終了後の行き先を選択してください</label>
+            <select id="end-destination" name="destination" required>
+              <option value="">選択してください</option>
+              <option value="配送センター">配送センター</option>
+              <option value="直帰">直帰</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>帰庫メーターを入力してください</label>
+            <input type="text" id="end-return-mileage" name="returnMileage" required pattern="[0-9]+" title="半角数字のみ入力してください" inputmode="numeric">
+          </div>
+
+          <div class="form-group" id="center-arrival-group">
+            <label>配送センターへ到着した時間を選択してください</label>
+            <div class="time-select-wrapper">
+              <select id="end-center-arrival-hour" name="centerArrivalHour">
+                <option value="">時</option>
+              </select>
+              <span class="time-separator">:</span>
+              <select id="end-center-arrival-minute" name="centerArrivalMinute">
+                <option value="">分</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" id="office-return-group">
+            <label id="office-return-label">営業所へ帰庫した時間を選択してください</label>
+            <div class="time-select-wrapper">
+              <select id="end-office-return-hour" name="officeReturnHour" required>
+                <option value="">時</option>
+              </select>
+              <span class="time-separator">:</span>
+              <select id="end-office-return-minute" name="officeReturnMinute" required>
+                <option value="">分</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>代引き・返金はありましたか？</label>
+            <select id="end-cash-delivery" name="cashDelivery" required>
+              <option value="">選択してください</option>
+              <option value="はい">はい</option>
+              <option value="いいえ">いいえ</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>有料道路は使用しましたか？</label>
+            <select id="end-toll-road" name="tollRoad" required>
+              <option value="">選択してください</option>
+              <option value="はい">はい</option>
+              <option value="いいえ">いいえ</option>
+            </select>
+          </div>
+
+          <div id="toll-sections" style="display: none;">
+            <div class="divider"></div>
+            <div id="toll-section-list"></div>
+            <button type="button" id="add-toll-section" class="add-button" style="width: auto; margin: 10px auto; display: block; padding: 12px 24px;">+ 使用区間を追加</button>
+          </div>
+
+          <button type="submit" class="submit-button">送信</button>
+          <button type="button" class="clear-button" onclick="clearForm('end')">全てクリア</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 履歴表示画面 -->
+    <div id="history-view" class="history-view">
+      <button class="back-button" onclick="hideHistoryView()">← 戻る</button>
+
+      <div class="history-filters">
+        <div class="form-group">
+          <label>日付を選択してください</label>
+          <input type="date" id="history-date">
+        </div>
+
+        <div class="form-group">
+          <label>号車を選択してください</label>
+          <select id="history-car">
+            <option value="">選択してください</option>
+            <option value="1号車">1号車</option>
+            <option value="2号車">2号車</option>
+            <option value="3号車">3号車</option>
+            <option value="4号車">4号車</option>
+            <option value="5号車">5号車</option>
+            <option value="6号車">6号車</option>
+            <option value="7号車">7号車</option>
+            <option value="8号車">8号車</option>
+            <option value="9号車">9号車</option>
+            <option value="10号車">10号車</option>
+            <option value="11号車">11号車</option>
+            <option value="12号車">12号車</option>
+            <option value="13号車">13号車</option>
+            <option value="14号車">14号車</option>
+            <option value="15号車">15号車</option>
+            <option value="16号車">16号車</option>
+            <option value="17号車">17号車</option>
+            <option value="18号車">18号車</option>
+            <option value="19号車">19号車</option>
+            <option value="20号車">20号車</option>
+            <option value="21号車">21号車</option>
+            <option value="22号車">22号車</option>
+            <option value="23号車">23号車</option>
+            <option value="24号車">24号車</option>
+            <option value="25号車">25号車</option>
+            <option value="26号車">26号車</option>
+            <option value="27号車">27号車</option>
+            <option value="28号車">28号車</option>
+            <option value="29号車">29号車</option>
+            <option value="30号車">30号車</option>
+          </select>
+        </div>
+
+        <button class="search-button" onclick="searchHistory()">検索</button>
+      </div>
+
+      <div id="history-results"></div>
+    </div>
+
+    <!-- ドライバー・車両管理画面 -->
+    <div id="management-view" class="management-view">
+      <button class="back-button" onclick="hideManagementView()">← 戻る</button>
+
+      <div class="management-section">
+        <h3>号車を選択</h3>
+        <div class="form-group">
+          <select id="management-car" onchange="loadManagementData()">
+            <option value="">選択してください</option>
+            <option value="1号車">1号車</option>
+            <option value="2号車">2号車</option>
+            <option value="3号車">3号車</option>
+            <option value="4号車">4号車</option>
+            <option value="5号車">5号車</option>
+            <option value="6号車">6号車</option>
+            <option value="7号車">7号車</option>
+            <option value="8号車">8号車</option>
+            <option value="9号車">9号車</option>
+            <option value="10号車">10号車</option>
+            <option value="11号車">11号車</option>
+            <option value="12号車">12号車</option>
+            <option value="13号車">13号車</option>
+            <option value="14号車">14号車</option>
+            <option value="15号車">15号車</option>
+            <option value="16号車">16号車</option>
+            <option value="17号車">17号車</option>
+            <option value="18号車">18号車</option>
+            <option value="19号車">19号車</option>
+            <option value="20号車">20号車</option>
+            <option value="21号車">21号車</option>
+            <option value="22号車">22号車</option>
+            <option value="23号車">23号車</option>
+            <option value="24号車">24号車</option>
+            <option value="25号車">25号車</option>
+            <option value="26号車">26号車</option>
+            <option value="27号車">27号車</option>
+            <option value="28号車">28号車</option>
+            <option value="29号車">29号車</option>
+            <option value="30号車">30号車</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="management-content" style="display: none;">
+        <div class="management-section">
+          <h3>ドライバー名</h3>
+          <div class="management-list" id="driver-list"></div>
+          <div class="form-group">
+            <input type="text" id="new-driver" placeholder="新しいドライバー名">
+          </div>
+          <button class="add-button" style="width: 100%; padding: 14px;" onclick="addDriver()">+ ドライバー追加</button>
+        </div>
+
+        <div class="management-section">
+          <h3>車両No</h3>
+          <div class="management-list" id="vehicle-list"></div>
+          <div class="form-group">
+            <input type="text" id="new-vehicle" placeholder="新しい車両No（半角数字4桁まで）" pattern="[0-9]{1,4}" inputmode="numeric">
+          </div>
+          <button class="add-button" style="width: 100%; padding: 14px;" onclick="addVehicle()">+ 車両No追加</button>
+        </div>
+
+        <div class="management-section">
+          <h3>送信タイミング設定</h3>
+          <div class="form-group">
+            <label>終了情報の送信タイミング</label>
+            <select id="submit-timing">
+              <option value="営業所帰庫時">営業所帰庫時</option>
+              <option value="積み込み終了時">積み込み終了時（配送センターで）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>配送センター→営業所の移動時間</label>
+            <input type="number" id="travel-time" placeholder="分" min="0" max="999" value="30">
+            <small style="color: #999; display: block; margin-top: 6px;">※業務終了時間と帰庫時間の計算に使用</small>
+          </div>
+          <button class="add-button" style="width: 100%; padding: 14px;" onclick="saveTimingSettings()">設定を保存</button>
+        </div>
+
+        <div class="management-section">
+          <h3 style="color: #d32f2f;">データリセット</h3>
+          <p style="color: #999; font-size: 14px; margin-bottom: 12px;">この号車の登録情報（ドライバー名・車両No・送信タイミング設定）を全て削除します。</p>
+          <button class="delete-button" style="width: 100%; padding: 14px; background: #d32f2f;" onclick="resetCarData()">⚠️ この号車のデータをリセット</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- サイドメニューオーバーレイ -->
+  <div class="side-menu-overlay" id="side-menu-overlay" onclick="closeMenu()"></div>
+
+  <!-- サイドメニュー -->
+  <div class="side-menu" id="side-menu">
+    <div class="side-menu-header">メニュー</div>
+    <ul class="side-menu-items">
+      <li class="side-menu-item">
+        <button onclick="showHistoryView()">
+          📋 履歴
+        </button>
+      </li>
+      <li class="side-menu-item">
+        <button onclick="showManagementPassword()">
+          👥 ドライバー・車両管理
+        </button>
+      </li>
+      <li class="side-menu-item">
+        <button onclick="showPasswordChangeModal()">
+          🔑 パスワード変更
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <!-- 上書き確認モーダル -->
+  <div class="modal-overlay" id="overwrite-modal" style="display: none;">
+    <div class="modal-content">
+      <h3 class="modal-title">⚠️ データが既に存在します</h3>
+      <p class="modal-message" id="overwrite-message">既にこの日付の号車のデータは送信されています。</p>
+      <div class="modal-buttons">
+        <button class="modal-button modal-button-primary" onclick="handleOverwrite('overwrite')">上書き保存する</button>
+        <button class="modal-button modal-button-secondary" onclick="handleOverwrite('clear')">上書きせずクリア</button>
+        <button class="modal-button modal-button-cancel" onclick="handleOverwrite('cancel')">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- パスワード認証モーダル -->
+  <div id="password-modal" class="password-modal">
+    <div class="password-modal-content">
+      <h3>🔒 管理者認証</h3>
+      <p style="text-align: center; color: #666; font-size: 14px; margin-bottom: 20px;">パスワードを入力してください</p>
+      <input type="password" id="management-password" class="password-input" placeholder="パスワード" onkeypress="if(event.key==='Enter') checkManagementPassword()">
+      <div class="password-buttons">
+        <button class="password-button cancel" onclick="closePasswordModal()">キャンセル</button>
+        <button class="password-button submit" onclick="checkManagementPassword()">確認</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- パスワード変更モーダル -->
+  <div id="password-change-modal" class="password-modal" style="display: none;">
+    <div class="password-modal-content">
+      <h3>🔑 パスワード変更</h3>
+      <p style="text-align: center; color: #666; font-size: 14px; margin-bottom: 20px;">新しいパスワードを設定してください</p>
+
+      <div style="margin-bottom: 15px; position: relative;">
+        <input type="password" id="current-password" class="password-input" placeholder="現在のパスワード">
+        <button type="button" onclick="togglePasswordVisibility('current-password')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px;">👁️</button>
+      </div>
+
+      <div style="margin-bottom: 15px; position: relative;">
+        <input type="password" id="new-password" class="password-input" placeholder="新しいパスワード">
+        <button type="button" onclick="togglePasswordVisibility('new-password')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px;">👁️</button>
+      </div>
+
+      <div style="margin-bottom: 20px; position: relative;">
+        <input type="password" id="new-password-confirm" class="password-input" placeholder="新しいパスワード（確認）">
+        <button type="button" onclick="togglePasswordVisibility('new-password-confirm')" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px;">👁️</button>
+      </div>
+
+      <div class="password-buttons">
+        <button class="password-button cancel" onclick="closePasswordChangeModal()">キャンセル</button>
+        <button class="password-button submit" onclick="changePassword()">変更</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // メニューの開閉
+    function toggleMenu() {
+      const menu = document.getElementById('side-menu');
+      const overlay = document.getElementById('side-menu-overlay');
+      menu.classList.toggle('active');
+      overlay.classList.toggle('active');
+    }
+
+    function closeMenu() {
+      document.getElementById('side-menu').classList.remove('active');
+      document.getElementById('side-menu-overlay').classList.remove('active');
+    }
+
+    // 履歴画面表示
+    function showHistoryView() {
+      closeMenu();
+      // 管理画面を閉じる
+      document.getElementById('management-view').classList.remove('active');
+      // 履歴を開く
+      document.getElementById('main-tabs').style.display = 'none';
+      document.querySelector('.form-container').style.display = 'none';
+      document.getElementById('history-view').classList.add('active');
+    }
+
+    function hideHistoryView() {
+      document.getElementById('main-tabs').style.display = 'flex';
+      document.querySelector('.form-container').style.display = 'block';
+      document.getElementById('history-view').classList.remove('active');
+      document.getElementById('history-results').innerHTML = '';
+    }
+
+    // 履歴検索
+    function searchHistory() {
+      const date = document.getElementById('history-date').value;
+      const car = document.getElementById('history-car').value;
+
+      if (!date || !car) {
+        alert('日付と号車を両方選択してください');
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(results) {
+          hideLoading();
+          displayHistoryResults(results);
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('検索エラー: ' + error.message);
+        })
+        .searchHistoryByDateAndCar(date, car);
+    }
+
+    // テーブルをクリップボードにコピー
+    function copyTableToClipboard(button) {
+      const historyItem = button.parentElement;
+      const table = historyItem.querySelector('.combined-table');
+
+      if (!table) {
+        alert('テーブルが見つかりません');
+        return;
+      }
+
+      // テーブルのデータをタブ区切りのテキストに変換
+      let text = '';
+      const rows = table.querySelectorAll('tr');
+
+      rows.forEach(function(row) {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+
+        // 空行（spacer）かどうかをチェック
+        const isSpacerRow = cells.length > 0 && cells[0].classList.contains('spacer');
+
+        if (isSpacerRow) {
+          // 空行の場合は3つの空セルを追加
+          text += '\t\t\n';
+        } else {
+          cells.forEach(function(cell) {
+            // colspanがある場合は、その数だけセルを追加
+            const colspan = cell.getAttribute('colspan') || 1;
+            const cellText = cell.textContent.trim();
+
+            if (colspan == 2) {
+              // ラベルセル（2列分）
+              rowData.push(cellText);
+              rowData.push(''); // 2列目は空
+            } else if (colspan == 3) {
+              // 3列分のセル（有料道路のヘッダーなど）
+              rowData.push(cellText);
+              rowData.push('');
+              rowData.push('');
+            } else {
+              rowData.push(cellText);
+            }
+          });
+
+          text += rowData.join('\t') + '\n';
+        }
+      });
+
+      // クリップボードにコピー
+      navigator.clipboard.writeText(text).then(function() {
+        // ボタンのテキストを一時的に変更
+        const originalText = button.textContent;
+        button.textContent = '✓ コピーしました！';
+        button.style.backgroundColor = '#4caf50';
+
+        setTimeout(function() {
+          button.textContent = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      }).catch(function(err) {
+        alert('コピーに失敗しました: ' + err);
+      });
+    }
+
+    // 時間を HH:MM 形式にフォーマット
+    function formatTime(timeValue) {
+      if (!timeValue) return '';
+
+      // すでに HH:MM 形式の場合
+      if (typeof timeValue === 'string' && timeValue.match(/^\d{1,2}:\d{2}$/)) {
+        const parts = timeValue.split(':');
+        return String(parts[0]).padStart(2, '0') + ':' + parts[1];
+      }
+
+      // Date オブジェクトの場合
+      if (timeValue instanceof Date || typeof timeValue === 'object') {
+        const d = new Date(timeValue);
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      }
+
+      // 文字列の場合（様々な形式に対応）
+      const str = String(timeValue);
+
+      // "HH:MM:SS" 形式
+      if (str.match(/^\d{1,2}:\d{2}:\d{2}$/)) {
+        const parts = str.split(':');
+        return String(parts[0]).padStart(2, '0') + ':' + parts[1];
+      }
+
+      // "HHMM" 形式
+      if (str.match(/^\d{3,4}$/)) {
+        const hours = str.length === 3 ? str.substring(0, 1) : str.substring(0, 2);
+        const minutes = str.length === 3 ? str.substring(1, 3) : str.substring(2, 4);
+        return String(hours).padStart(2, '0') + ':' + minutes;
+      }
+
+      return timeValue;
+    }
+
+    // 履歴結果表示
+    function displayHistoryResults(results) {
+      const container = document.getElementById('history-results');
+
+      if (!results || results.length === 0) {
+        container.innerHTML = '<div class="no-results">該当する履歴が見つかりませんでした</div>';
+        return;
+      }
+
+      let html = '';
+      results.forEach(function(item) {
+        const start = item.startData;
+        const end = item.endData;
+
+        // 業務終了時間と帰庫時間を計算
+        let businessEndTime = '';
+        let returnTime = '';
+
+        if (end) {
+          const submitTiming = end.submitTiming || '営業所帰庫時';
+          const travelTime = parseInt(end.travelTime) || 30;
+
+          if (submitTiming === '営業所帰庫時') {
+            // 営業所帰庫時の場合：帰庫時間 - 移動時間 = 業務終了時間
+            if (end.officeReturn) {
+              returnTime = end.officeReturn;
+              const time = returnTime.split(':');
+              if (time.length === 2) {
+                let hour = parseInt(time[0]);
+                let minute = parseInt(time[1]) - travelTime;
+                while (minute < 0) {
+                  hour -= 1;
+                  minute += 60;
+                }
+                if (hour < 0) hour = 0;
+                businessEndTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+              }
+            }
+          } else {
+            // 積み込み終了時の場合：業務終了時間 + 移動時間 = 帰庫時間
+            if (end.businessEndTime) {
+              businessEndTime = end.businessEndTime;
+              const time = businessEndTime.split(':');
+              if (time.length === 2) {
+                let hour = parseInt(time[0]);
+                let minute = parseInt(time[1]) + travelTime;
+                while (minute >= 60) {
+                  hour += 1;
+                  minute -= 60;
+                }
+                returnTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+              }
+            }
+          }
+        }
+
+        html += '<div class="history-item">';
+        html += '<table class="combined-table">';
+        html += '<tr><td class="label" colspan="2">車両No</td><td class="value">' + (start ? start.vehicleNo : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">号車</td><td class="value">' + item.carNumber + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">庸車区分①</td><td class="value">' + (start ? start.hiredVehicle1 : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">庸車区分②</td><td class="value">' + (start ? start.hiredVehicle2 : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">運転者</td><td class="value">' + (start ? start.driverName : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">助手</td><td class="value">' + (start ? start.assistant : '') + '</td></tr>';
+        html += '<tr><td class="spacer" colspan="3"></td></tr>';
+        html += '<tr><td class="label" colspan="2">出庫メーター</td><td class="value">' + (start ? start.exitMileage : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">帰庫メーター</td><td class="value">' + (end ? end.returnMileage : '') + '</td></tr>';
+        html += '<tr><td class="spacer" colspan="3"></td></tr>';
+        html += '<tr><td class="label" colspan="2">出発時間</td><td class="value">' + (start ? formatTime(start.exitTime) : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">帰着時間</td><td class="value">' + (end ? formatTime(end.centerArrival) : '') + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">業務終了</td><td class="value">' + businessEndTime + '</td></tr>';
+        html += '<tr><td class="label" colspan="2">帰庫時間</td><td class="value">' + returnTime + '</td></tr>';
+        html += '<tr><td class="spacer" colspan="3"></td></tr>';
+        html += '<tr><td class="label" colspan="2">有料道路</td><td class="label">料金</td></tr>';
+
+        // 有料道路の区間を表示
+        if (end && end.tollSections && end.tollSections.length > 0) {
+          end.tollSections.forEach(function(section) {
+            html += '<tr>';
+            html += '<td class="toll-start">' + section.start + '</td>';
+            html += '<td class="toll-end">' + section.end + '</td>';
+            html += '<td class="toll-fee">' + section.fee + '</td>';
+            html += '</tr>';
+          });
+        } else {
+          // 有料道路がない場合も空行を追加してテーブル構造を保持
+          html += '<tr>';
+          html += '<td class="toll-start"></td>';
+          html += '<td class="toll-end"></td>';
+          html += '<td class="toll-fee"></td>';
+          html += '</tr>';
+        }
+
+        html += '</table>';
+
+        // 登録日時
+        const timestamp = start ? start.timestamp : (end ? end.timestamp : '');
+        if (timestamp) {
+          html += '<div class="history-timestamp">登録日時: ' + new Date(timestamp).toLocaleString('ja-JP') + '</div>';
+        }
+
+        html += '<button class="copy-button" onclick="copyTableToClipboard(this)">📋 コピー</button>';
+        html += '</div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    // 管理画面パスワード確認
+    function showManagementPassword() {
+      closeMenu();
+      document.getElementById('password-modal').classList.add('active');
+      document.getElementById('management-password').value = '';
+      document.getElementById('management-password').focus();
+    }
+
+    function closePasswordModal() {
+      document.getElementById('password-modal').classList.remove('active');
+    }
+
+    function checkManagementPassword() {
+      const password = document.getElementById('management-password').value;
+
+      if (!password) {
+        alert('パスワードを入力してください');
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(isValid) {
+          if (isValid) {
+            closePasswordModal();
+            showManagementView();
+          } else {
+            alert('パスワードが間違っています');
+            document.getElementById('management-password').value = '';
+            document.getElementById('management-password').focus();
+          }
+        })
+        .withFailureHandler(function(error) {
+          alert('エラー: ' + error.message);
+        })
+        .verifyManagementPassword(password);
+    }
+
+    // パスワード変更モーダル表示
+    function showPasswordChangeModal() {
+      closeMenu();
+      document.getElementById('password-change-modal').style.display = 'flex';
+      document.getElementById('current-password').value = '';
+      document.getElementById('new-password').value = '';
+      document.getElementById('new-password-confirm').value = '';
+    }
+
+    function closePasswordChangeModal() {
+      document.getElementById('password-change-modal').style.display = 'none';
+    }
+
+    // パスワード表示/非表示切り替え
+    function togglePasswordVisibility(inputId) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+      } else {
+        input.type = 'password';
+      }
+    }
+
+    // パスワード変更
+    function changePassword() {
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const newPasswordConfirm = document.getElementById('new-password-confirm').value;
+
+      if (!currentPassword || !newPassword || !newPasswordConfirm) {
+        alert('全ての項目を入力してください');
+        return;
+      }
+
+      if (newPassword !== newPasswordConfirm) {
+        alert('新しいパスワードが一致しません');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        alert('新しいパスワードは6文字以上で設定してください');
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            alert('パスワードを変更しました');
+            closePasswordChangeModal();
+          } else {
+            alert(response.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .changeManagementPassword(currentPassword, newPassword);
+    }
+
+    // 管理画面表示
+    function showManagementView() {
+      // 履歴を閉じる
+      document.getElementById('history-view').classList.remove('active');
+      // 管理画面を開く
+      document.getElementById('main-tabs').style.display = 'none';
+      document.querySelector('.form-container').style.display = 'none';
+      document.getElementById('management-view').classList.add('active');
+    }
+
+    function hideManagementView() {
+      document.getElementById('main-tabs').style.display = 'flex';
+      document.querySelector('.form-container').style.display = 'block';
+      document.getElementById('management-view').classList.remove('active');
+      document.getElementById('management-car').value = '';
+      document.getElementById('management-content').style.display = 'none';
+    }
+
+    // 管理データ読み込み
+    function loadManagementData() {
+      const car = document.getElementById('management-car').value;
+
+      if (!car) {
+        document.getElementById('management-content').style.display = 'none';
+        return;
+      }
+
+      showLoading();
+
+      // ドライバー・車両データと送信タイミング設定を並行で取得
+      Promise.all([
+        new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getManagementData(car);
+        }),
+        new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getTimingSettings(car);
+        })
+      ]).then(([managementData, timingSettings]) => {
+        hideLoading();
+        document.getElementById('management-content').style.display = 'block';
+        displayDriverList(managementData.drivers);
+        displayVehicleList(managementData.vehicles);
+
+        // 送信タイミング設定を表示
+        document.getElementById('submit-timing').value = timingSettings.submitTiming || '営業所帰庫時';
+        document.getElementById('travel-time').value = timingSettings.travelTime || 30;
+      }).catch((error) => {
+        hideLoading();
+        alert('データ取得エラー: ' + error.message);
+      });
+    }
+
+    // ドライバーリスト表示
+    function displayDriverList(drivers) {
+      const container = document.getElementById('driver-list');
+      if (!drivers || drivers.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">登録されたドライバーがありません</div>';
+        return;
+      }
+
+      let html = '';
+      drivers.forEach(function(driver) {
+        html += `
+          <div class="management-item">
+            <span>${driver}</span>
+            <button class="delete-button" onclick="deleteDriver('${driver.replace(/'/g, "\\'")}')">削除</button>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // 車両リスト表示
+    function displayVehicleList(vehicles) {
+      const container = document.getElementById('vehicle-list');
+      if (!vehicles || vehicles.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">登録された車両Noがありません</div>';
+        return;
+      }
+
+      let html = '';
+      vehicles.forEach(function(vehicle) {
+        html += `
+          <div class="management-item">
+            <span>${vehicle}</span>
+            <button class="delete-button" onclick="deleteVehicle('${vehicle}')">削除</button>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // ドライバー追加
+    function addDriver() {
+      const car = document.getElementById('management-car').value;
+      const driver = document.getElementById('new-driver').value.trim();
+
+      if (!driver) {
+        alert('ドライバー名を入力してください');
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            document.getElementById('new-driver').value = '';
+            loadManagementData();
+          } else {
+            alert(response.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .saveDriverName(car, driver);
+    }
+
+    // 車両No追加
+    function addVehicle() {
+      const car = document.getElementById('management-car').value;
+      let vehicle = document.getElementById('new-vehicle').value.trim();
+
+      if (!vehicle) {
+        alert('車両Noを入力してください');
+        return;
+      }
+
+      // 全角を半角に変換
+      vehicle = vehicle.replace(/[０-９]/g, function(s) {
+        return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+      });
+
+      if (!/^[0-9]{1,4}$/.test(vehicle)) {
+        alert('半角数字4桁までで入力してください');
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            document.getElementById('new-vehicle').value = '';
+            loadManagementData();
+          } else {
+            alert(response.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .saveVehicleNo(car, vehicle);
+    }
+
+    // 送信タイミング設定保存
+    function saveTimingSettings() {
+      const car = document.getElementById('management-car').value;
+      const submitTiming = document.getElementById('submit-timing').value;
+      const travelTime = parseInt(document.getElementById('travel-time').value);
+
+      if (!car) {
+        alert('号車を選択してください');
+        return;
+      }
+
+      if (isNaN(travelTime) || travelTime < 0) {
+        alert('移動時間を正しく入力してください');
+        return;
+      }
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            alert('設定を保存しました');
+          } else {
+            alert('エラー: ' + response.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .saveTimingSettings(car, submitTiming, travelTime);
+    }
+
+    // 号車データリセット
+    function resetCarData() {
+      const car = document.getElementById('management-car').value;
+
+      if (!car) {
+        alert('号車を選択してください');
+        return;
+      }
+
+      const password = prompt('パスワードを入力してください：');
+
+      if (!password) {
+        return;
+      }
+
+      // パスワード確認
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(isValid) {
+          if (!isValid) {
+            hideLoading();
+            alert('パスワードが正しくありません');
+            return;
+          }
+
+          if (!confirm(`【警告】\n${car}の全ての登録情報（ドライバー名・車両No・送信タイミング設定）を削除します。\n\nこの操作は取り消せません。本当に実行しますか？`)) {
+            hideLoading();
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(function(response) {
+              hideLoading();
+              if (response.success) {
+                alert('リセットしました');
+                loadManagementData();
+              } else {
+                alert('エラー: ' + response.message);
+              }
+            })
+            .withFailureHandler(function(error) {
+              hideLoading();
+              alert('エラー: ' + error.message);
+            })
+            .resetCarData(car);
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .verifyManagementPassword(password);
+    }
+
+    // ドライバー削除
+    function deleteDriver(driver) {
+      if (!confirm(`「${driver}」を削除しますか？`)) {
+        return;
+      }
+
+      const car = document.getElementById('management-car').value;
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            loadManagementData();
+          } else {
+            alert(response.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .deleteDriverName(car, driver);
+    }
+
+    // 車両No削除
+    function deleteVehicle(vehicle) {
+      if (!confirm(`「${vehicle}」を削除しますか？`)) {
+        return;
+      }
+
+      const car = document.getElementById('management-car').value;
+
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            loadManagementData();
+          } else {
+            alert(response.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          alert('エラー: ' + error.message);
+        })
+        .deleteVehicleNo(car, vehicle);
+    }
+
+    // 時間（5:00-23:00）と分（5分刻み）のオプションを生成
+    function populateTimeSelects() {
+      // 時間の選択肢（5時から23時）
+      const hours = [];
+      for (let h = 5; h <= 23; h++) {
+        hours.push(String(h).padStart(2, '0'));
+      }
+
+      // 分の選択肢（5分刻み）
+      const minutes = [];
+      for (let m = 0; m < 60; m += 5) {
+        minutes.push(String(m).padStart(2, '0'));
+      }
+
+      // 時間のselectを取得
+      const hourSelects = [
+        document.getElementById('start-exit-time-hour'),
+        document.getElementById('end-center-arrival-hour'),
+        document.getElementById('end-office-return-hour')
+      ];
+
+      // 分のselectを取得
+      const minuteSelects = [
+        document.getElementById('start-exit-time-minute'),
+        document.getElementById('end-center-arrival-minute'),
+        document.getElementById('end-office-return-minute')
+      ];
+
+      // 時間の選択肢を追加
+      hourSelects.forEach(select => {
+        hours.forEach(hour => {
+          const option = document.createElement('option');
+          option.value = hour;
+          option.textContent = hour;
+          select.appendChild(option);
+        });
+      });
+
+      // 分の選択肢を追加
+      minuteSelects.forEach(select => {
+        minutes.forEach(minute => {
+          const option = document.createElement('option');
+          option.value = minute;
+          option.textContent = minute;
+          select.appendChild(option);
+        });
+      });
+    }
+
+    // ページ読み込み時に時間選択肢を生成
+    populateTimeSelects();
+
+    // 上書き確認用のグローバル変数
+    let pendingFormData = null;
+    let pendingFormType = null; // 'start' or 'end'
+    let overwriteMode = false;
+
+    // 開始タブの日付と号車選択時のチェック
+    document.getElementById('start-date').addEventListener('change', checkStartDataExistence);
+    document.getElementById('start-car').addEventListener('change', checkStartDataExistence);
+
+    // 終了タブの日付と号車選択時のチェック
+    document.getElementById('end-date').addEventListener('change', checkEndDataExistence);
+    document.getElementById('end-car').addEventListener('change', function() {
+      checkEndDataExistence();
+      loadEndFormTimingSettings();
+    });
+
+    // グローバル変数：現在の送信タイミング設定
+    let currentEndTimingSettings = {
+      submitTiming: '営業所帰庫時',
+      travelTime: 30
+    };
+
+    // 終了フォームの送信タイミング設定を読み込み
+    function loadEndFormTimingSettings() {
+      const car = document.getElementById('end-car').value;
+
+      if (!car) return;
+
+      google.script.run
+        .withSuccessHandler(function(settings) {
+          currentEndTimingSettings = settings;
+
+          // ラベルを変更
+          const label = document.getElementById('office-return-label');
+          if (settings.submitTiming === '積み込み終了時') {
+            label.textContent = '業務終了時間を選択してください（配送センターで積み込みが終わった時間）';
+          } else {
+            label.textContent = '営業所へ帰庫した時間を選択してください';
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('設定取得エラー:', error);
+        })
+        .getTimingSettings(car);
+    }
+
+    function checkStartDataExistence() {
+      const date = document.getElementById('start-date').value;
+      const car = document.getElementById('start-car').value;
+
+      if (date && car) {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            // resultがオブジェクトの場合とbooleanの場合の両方に対応
+            const dataExists = (typeof result === 'object' && result.exists === true) || result === true;
+
+            if (dataExists) {
+              showOverwriteModal('start', '既にこの日付の号車の開始データは送信されています。');
+            }
+          })
+          .withFailureHandler(function(error) {
+            console.error('チェックエラー:', error);
+          })
+          .checkStartDataExists(date, car);
+      }
+    }
+
+    function checkEndDataExistence() {
+      const date = document.getElementById('end-date').value;
+      const car = document.getElementById('end-car').value;
+
+      if (date && car) {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            // resultがオブジェクトの場合とbooleanの場合の両方に対応
+            const dataExists = (typeof result === 'object' && result.exists === true) || result === true;
+
+            if (dataExists) {
+              showOverwriteModal('end', '既にこの日付の号車の終了データは送信されています。');
+            }
+          })
+          .withFailureHandler(function(error) {
+            console.error('チェックエラー:', error);
+          })
+          .checkEndDataExists(date, car);
+      }
+    }
+
+    function showOverwriteModal(formType, message) {
+      pendingFormType = formType;
+      document.getElementById('overwrite-message').textContent = message;
+      document.getElementById('overwrite-modal').style.display = 'flex';
+    }
+
+    function handleOverwrite(action) {
+      const modal = document.getElementById('overwrite-modal');
+      modal.style.display = 'none';
+
+      if (action === 'cancel') {
+        // キャンセル - 何もしない
+        overwriteMode = false;
+      } else if (action === 'clear') {
+        // クリア - フォームをリセット
+        if (pendingFormType === 'start') {
+          document.getElementById('start-form').reset();
+        } else {
+          document.getElementById('end-form').reset();
+        }
+        overwriteMode = false;
+      } else if (action === 'overwrite') {
+        // 上書き保存モードを有効化
+        overwriteMode = true;
+      }
+
+      pendingFormType = null;
+    }
+
+    // 今日の日付を自動設定（削除）
+    // document.getElementById('start-date').valueAsDate = new Date();
+    // document.getElementById('end-date').valueAsDate = new Date();
+
+    // ドライバー名の新規登録
+    document.getElementById('add-driver-btn').addEventListener('click', function() {
+      const carNumber = document.getElementById('start-car').value;
+
+      if (!carNumber) {
+        alert('先に号車を選択してください');
+        return;
+      }
+
+      const driverName = prompt('ドライバー名を入力してください');
+
+      if (driverName && driverName.trim() !== '') {
+        // スプレッドシートに保存
+        google.script.run
+          .withSuccessHandler(function(response) {
+            if (response.success) {
+              alert('ドライバー名を登録しました');
+              // ドロップダウンを更新
+              loadDriverOptions(carNumber, driverName.trim());
+            } else {
+              alert('登録エラー: ' + response.message);
+            }
+          })
+          .withFailureHandler(function(error) {
+            alert('登録エラーが発生しました: ' + error.message);
+          })
+          .saveDriverName(carNumber, driverName.trim());
+      }
+    });
+
+    // 車両Noの新規登録
+    document.getElementById('add-vehicle-btn').addEventListener('click', function() {
+      const carNumber = document.getElementById('start-car').value;
+
+      if (!carNumber) {
+        alert('先に号車を選択してください');
+        return;
+      }
+
+      let vehicleNo = prompt('車両Noを入力してください（半角数字4桁まで）');
+
+      if (vehicleNo !== null) {
+        // 全角数字を半角に変換
+        vehicleNo = vehicleNo.replace(/[０-９]/g, function(s) {
+          return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+        });
+
+        // 半角数字のみ、4桁まで
+        if (!/^[0-9]{1,4}$/.test(vehicleNo)) {
+          alert('半角数字4桁までで入力してください');
+          return;
+        }
+
+        // スプレッドシートに保存
+        google.script.run
+          .withSuccessHandler(function(response) {
+            if (response.success) {
+              alert('車両Noを登録しました');
+              // ドロップダウンを更新
+              loadVehicleOptions(carNumber, vehicleNo);
+            } else {
+              alert('登録エラー: ' + response.message);
+            }
+          })
+          .withFailureHandler(function(error) {
+            alert('登録エラーが発生しました: ' + error.message);
+          })
+          .saveVehicleNo(carNumber, vehicleNo);
+      }
+    });
+
+    // 号車選択時にドライバー名と車両Noの選択肢を読み込む
+    document.getElementById('start-car').addEventListener('change', function() {
+      const carNumber = this.value;
+
+      if (carNumber) {
+        loadDriverOptions(carNumber);
+        loadVehicleOptions(carNumber);
+      } else {
+        // 号車が未選択の場合はリセット
+        resetDriverOptions();
+        resetVehicleOptions();
+      }
+    });
+
+    // ドライバー名の選択肢を読み込む
+    function loadDriverOptions(carNumber, selectValue) {
+      google.script.run
+        .withSuccessHandler(function(drivers) {
+          const select = document.getElementById('start-driver');
+          select.innerHTML = '<option value="">選択してください</option>';
+
+          drivers.forEach(function(driver) {
+            const option = document.createElement('option');
+            option.value = driver;
+            option.textContent = driver;
+            select.appendChild(option);
+          });
+
+          // 新規登録直後の場合は自動選択
+          if (selectValue) {
+            select.value = selectValue;
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('ドライバー名取得エラー:', error);
+        })
+        .getDriverNames(carNumber);
+    }
+
+    // 車両Noの選択肢を読み込む
+    function loadVehicleOptions(carNumber, selectValue) {
+      google.script.run
+        .withSuccessHandler(function(vehicles) {
+          const select = document.getElementById('start-vehicle');
+          select.innerHTML = '<option value="">選択してください</option>';
+
+          vehicles.forEach(function(vehicle) {
+            const option = document.createElement('option');
+            option.value = vehicle;
+            option.textContent = vehicle;
+            select.appendChild(option);
+          });
+
+          // 新規登録直後の場合は自動選択
+          if (selectValue) {
+            select.value = selectValue;
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('車両No取得エラー:', error);
+        })
+        .getVehicleNumbers(carNumber);
+    }
+
+    // ドライバー名選択肢をリセット
+    function resetDriverOptions() {
+      const select = document.getElementById('start-driver');
+      select.innerHTML = '<option value="">選択してください</option>';
+    }
+
+    // 車両No選択肢をリセット
+    function resetVehicleOptions() {
+      const select = document.getElementById('start-vehicle');
+      select.innerHTML = '<option value="">選択してください</option>';
+    }
+
+    // 終了タブの日付と号車が変更されたときのバリデーション
+    function validateEndFormStartData() {
+      const endDate = document.getElementById('end-date').value;
+      const endCar = document.getElementById('end-car').value;
+
+      if (endDate && endCar) {
+        google.script.run
+          .withSuccessHandler(function(exists) {
+            if (!exists) {
+              alert('警告: この日付と号車の開始情報が登録されていません。先に開始情報を入力してください。');
+            }
+          })
+          .withFailureHandler(function(error) {
+            console.error('開始情報の確認エラー:', error);
+          })
+          .checkStartDataExists(endDate, endCar);
+      }
+    }
+
+    document.getElementById('end-date').addEventListener('change', validateEndFormStartData);
+    document.getElementById('end-car').addEventListener('change', validateEndFormStartData);
+
+    // 有料道路セクションのカウンター
+    let tollSectionCount = 0;
+    const MAX_TOLL_SECTIONS = 10;
+
+    // 業務終了後の行き先による表示制御
+    document.getElementById('end-destination').addEventListener('change', function() {
+      const centerArrivalGroup = document.getElementById('center-arrival-group');
+      const centerArrivalHour = document.getElementById('end-center-arrival-hour');
+      const centerArrivalMinute = document.getElementById('end-center-arrival-minute');
+
+      if (this.value === '直帰') {
+        centerArrivalGroup.style.display = 'none';
+        centerArrivalHour.removeAttribute('required');
+        centerArrivalMinute.removeAttribute('required');
+      } else {
+        centerArrivalGroup.style.display = 'block';
+        centerArrivalHour.setAttribute('required', 'required');
+        centerArrivalMinute.setAttribute('required', 'required');
+      }
+    });
+
+    // 有料道路使用による表示制御
+    document.getElementById('end-toll-road').addEventListener('change', function() {
+      const tollSections = document.getElementById('toll-sections');
+
+      if (this.value === 'はい') {
+        tollSections.style.display = 'block';
+        // 初回は1つ自動追加
+        if (tollSectionCount === 0) {
+          addTollSection();
+        }
+      } else {
+        tollSections.style.display = 'none';
+        // セクションをクリア
+        document.getElementById('toll-section-list').innerHTML = '';
+        tollSectionCount = 0;
+      }
+    });
+
+    // 有料道路区間追加
+    document.getElementById('add-toll-section').addEventListener('click', function() {
+      if (tollSectionCount < MAX_TOLL_SECTIONS) {
+        addTollSection();
+      } else {
+        alert('使用区間は最大10件までです');
+      }
+    });
+
+    function addTollSection() {
+      tollSectionCount++;
+      const sectionList = document.getElementById('toll-section-list');
+      const sectionDiv = document.createElement('div');
+      sectionDiv.className = 'toll-section-item';
+      sectionDiv.id = 'toll-section-' + tollSectionCount;
+
+      sectionDiv.innerHTML = `
+        <div class="toll-section-header">
+          <span class="toll-section-title">使用区間 ${tollSectionCount}</span>
+          <button type="button" class="remove-toll-button" onclick="removeTollSection(${tollSectionCount})">削除</button>
+        </div>
+        <div class="form-group">
+          <label>開始区間</label>
+          <input type="text" name="toll-start-${tollSectionCount}" required>
+        </div>
+        <div class="form-group">
+          <label>終了区間</label>
+          <input type="text" name="toll-end-${tollSectionCount}" required>
+        </div>
+        <div class="form-group">
+          <label>料金</label>
+          <input type="text" name="toll-fee-${tollSectionCount}" required pattern="[0-9]+" title="半角数字のみ入力してください" inputmode="numeric">
+        </div>
+      `;
+
+      sectionList.appendChild(sectionDiv);
+
+      // ボタンの表示制御
+      if (tollSectionCount >= MAX_TOLL_SECTIONS) {
+        document.getElementById('add-toll-section').style.display = 'none';
+      }
+    }
+
+    function removeTollSection(id) {
+      const section = document.getElementById('toll-section-' + id);
+      if (section) {
+        section.remove();
+        tollSectionCount--;
+
+        // ボタンを再表示
+        if (tollSectionCount < MAX_TOLL_SECTIONS) {
+          document.getElementById('add-toll-section').style.display = 'block';
+        }
+
+        // 番号を振り直し
+        renumberTollSections();
+      }
+    }
+
+    function renumberTollSections() {
+      const sections = document.querySelectorAll('.toll-section-item');
+      sections.forEach((section, index) => {
+        const title = section.querySelector('.toll-section-title');
+        if (title) {
+          title.textContent = '使用区間 ' + (index + 1);
+        }
+      });
+    }
+
+    // タブ切り替え
+    function switchTab(tab) {
+      // メッセージをクリア
+      hideMessage();
+
+      // タブボタンの切り替え
+      const tabs = document.querySelectorAll('.tab');
+      tabs.forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // ヘッダーの色を変更
+      const header = document.getElementById('app-header');
+      if (tab === 'end') {
+        header.classList.add('end-mode');
+      } else {
+        header.classList.remove('end-mode');
+      }
+
+      // コンテンツの切り替え
+      document.getElementById('start-content').classList.remove('active');
+      document.getElementById('end-content').classList.remove('active');
+      document.getElementById(tab + '-content').classList.add('active');
+    }
+
+    // 履歴表示
+    function showHistory() {
+      document.getElementById('main-tabs').style.display = 'none';
+      document.getElementById('start-content').style.display = 'none';
+      document.getElementById('end-content').style.display = 'none';
+      document.getElementById('history-view').classList.add('active');
+
+      // 自動的に最近の履歴を表示
+      loadRecentHistory();
+    }
+
+    // 最近の履歴を自動ロード
+    function loadRecentHistory() {
+      console.log('loadRecentHistory called');
+      showLoading();
+      google.script.run
+        .withSuccessHandler(function(results) {
+          console.log('Success handler called, results:', results);
+          hideLoading();
+          displayHistoryResults(results);
+        })
+        .withFailureHandler(function(error) {
+          console.error('Failure handler called, error:', error);
+          hideLoading();
+          alert('履歴取得エラー: ' + error.message);
+        })
+        .searchHistory('', '', '');
+    }
+
+    // 履歴非表示
+    // 開始フォームの送信
+    document.getElementById('start-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const exitTimeHour = document.getElementById('start-exit-time-hour').value;
+      const exitTimeMinute = document.getElementById('start-exit-time-minute').value;
+      const exitTime = exitTimeHour + ':' + exitTimeMinute;
+
+      const formData = {
+        date: document.getElementById('start-date').value,
+        carNumber: document.getElementById('start-car').value,
+        driverName: document.getElementById('start-driver').value,
+        vehicleNo: document.getElementById('start-vehicle').value,
+        hiredVehicle1: document.getElementById('start-hired-vehicle1').value,
+        hiredVehicle2: document.getElementById('start-hired-vehicle2').value,
+        assistant: document.getElementById('start-assistant').value,
+        exitMileage: document.getElementById('start-exit-mileage').value,
+        exitTime: exitTime
+      };
+
+      submitData('saveStartData', formData, 'start');
+    });
+
+    // 終了フォームの送信
+    document.getElementById('end-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const destination = document.getElementById('end-destination').value;
+      const officeReturnHour = document.getElementById('end-office-return-hour').value;
+      const officeReturnMinute = document.getElementById('end-office-return-minute').value;
+      const timeValue = officeReturnHour + ':' + officeReturnMinute;
+
+      let centerArrival;
+      if (destination === '直帰') {
+        centerArrival = timeValue;
+      } else {
+        const centerArrivalHour = document.getElementById('end-center-arrival-hour').value;
+        const centerArrivalMinute = document.getElementById('end-center-arrival-minute').value;
+        centerArrival = centerArrivalHour + ':' + centerArrivalMinute;
+      }
+
+      // 有料道路情報の収集
+      const tollRoad = document.getElementById('end-toll-road').value;
+      let tollSections = [];
+
+      if (tollRoad === 'はい') {
+        const sections = document.querySelectorAll('.toll-section-item');
+        sections.forEach((section, index) => {
+          const num = index + 1;
+          tollSections.push({
+            start: section.querySelector(`[name="toll-start-${section.id.split('-')[2]}"]`).value,
+            end: section.querySelector(`[name="toll-end-${section.id.split('-')[2]}"]`).value,
+            fee: section.querySelector(`[name="toll-fee-${section.id.split('-')[2]}"]`).value
+          });
+        });
+      }
+
+      // 送信タイミングに応じてデータを設定
+      const formData = {
+        date: document.getElementById('end-date').value,
+        carNumber: document.getElementById('end-car').value,
+        destination: destination,
+        returnMileage: document.getElementById('end-return-mileage').value,
+        centerArrival: centerArrival,
+        cashDelivery: document.getElementById('end-cash-delivery').value,
+        tollRoad: tollRoad,
+        tollSections: tollSections,
+        submitTiming: currentEndTimingSettings.submitTiming,
+        travelTime: currentEndTimingSettings.travelTime
+      };
+
+      // 送信タイミングに応じて時間データを振り分け
+      if (currentEndTimingSettings.submitTiming === '積み込み終了時') {
+        formData.businessEndTime = timeValue;  // 業務終了時間として保存
+        formData.officeReturn = '';  // 帰庫時間は空
+      } else {
+        formData.officeReturn = timeValue;  // 帰庫時間として保存
+        formData.businessEndTime = '';  // 業務終了時間は空
+      }
+
+      submitData('saveEndData', formData, 'end');
+    });
+
+    // データ送信
+    function submitData(functionName, data, formType) {
+      showLoading();
+      hideMessage();
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          hideLoading();
+          if (response.success) {
+            showMessage(response.message, 'success');
+            clearForm(formType);
+            overwriteMode = false; // リセット
+          } else {
+            showMessage(response.message, 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          hideLoading();
+          showMessage('送信エラーが発生しました: ' + error.message, 'error');
+        })
+        [functionName](data, overwriteMode);
+    }
+
+    // フォームクリア
+    function clearForm(type) {
+      document.getElementById(type + '-form').reset();
+      if (type === 'end') {
+        // 有料道路セクションをクリア
+        document.getElementById('toll-section-list').innerHTML = '';
+        tollSectionCount = 0;
+        document.getElementById('toll-sections').style.display = 'none';
+        document.getElementById('center-arrival-group').style.display = 'block';
+        document.getElementById('end-center-arrival-hour').setAttribute('required', 'required');
+        document.getElementById('end-center-arrival-minute').setAttribute('required', 'required');
+      }
+      hideMessage();
+    }
+
+    // メッセージ表示
+    function showMessage(text, type) {
+      const messageEl = document.getElementById('message');
+      messageEl.textContent = text;
+      messageEl.className = 'message ' + type;
+      messageEl.style.display = 'block';
+
+      // 3秒後に自動で消す
+      setTimeout(() => {
+        hideMessage();
+      }, 3000);
+    }
+
+    function hideMessage() {
+      document.getElementById('message').style.display = 'none';
+    }
+
+    // ローディング表示
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+    }
+
+    // iOSのズーム防止
+    document.addEventListener('gesturestart', function (e) {
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>
